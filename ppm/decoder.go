@@ -1,4 +1,4 @@
-package ppmlib
+package ppm
 
 import (
 	"errors"

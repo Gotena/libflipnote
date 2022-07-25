@@ -1,4 +1,4 @@
-package ppmlib
+package ppm
 
 import (
 	crunch "github.com/superwhiskers/crunch/v3"

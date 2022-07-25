@@ -1,4 +1,4 @@
-package ppmlib
+package ppm
 
 import (
 	"crypto"
@@ -147,8 +147,6 @@ func Parse(data []byte) (*PPMFile, error) {
 	oCnt := file.FrameOffsetTableSize/4 - 1
 	animationOffsets := buffer.ReadU32LENext(int64(oCnt + 1))
 
-	go file.ParseFrames(data, animationOffsets)
-
 	if file.SoundDataSize == 0 {
 		return file, nil
 	}
@@ -205,31 +203,28 @@ func Parse(data []byte) (*PPMFile, error) {
 	}
 
 	//Block until all frames have been processed
-	for {
-		if file.FramesParsed >= uint16(len(file.Frames)-1) {
-			break
-		}
+	perGor := 100
+	amount := len(file.Frames) / perGor
 
-		frames := make([]uint16, 0)
-		for i := uint16(0); i < uint16(len(file.Frames)); i++ {
-			if file.Frames[i] == nil {
-				frames = append(frames, i+1)
-			}
-		}
-		if len(frames) == 0 {
-			break
-		}
+	go file.ParseFrames(data, animationOffsets)
+
+	for file.FramesParsed < uint16(amount) {
+		<-returnChannel
 	}
 
-	for i := uint16(1); i < uint16(len(file.Frames)); i++ {
-		go file.Frames[i].Overwrite(file.Frames[i-1])
+	for i, frame := range file.Frames {
+		if i > 0 {
+			frame.Overwrite(file.Frames[i-1])
+		}
 	}
 
 	return file, nil
 }
 
+var returnChannel = make(chan bool)
+
 func (file *PPMFile) ParseFrames(data []byte, offsets []uint32) {
-	perGor := uint16(25)
+	perGor := uint16(100)
 	for i := uint16(0); i < uint16(len(offsets)); i += perGor {
 		go func(i uint16) {
 			for j := uint16(0); j < perGor; j++ {
@@ -243,7 +238,18 @@ func (file *PPMFile) ParseFrames(data []byte, offsets []uint32) {
 				file.Frames[frame] = ReadFrame(crunch.NewBuffer(data[frameOffset:frameEndset]))
 				file.FramesParsed++
 			}
+			returnChannel <- true
 		}(i)
+	}
+
+	for {
+		if file.FramesParsed >= uint16(len(offsets)) {
+			break
+		}
+	}
+
+	for i := uint16(1); i < uint16(len(offsets)); i++ {
+		file.Frames[i].Overwrite(file.Frames[i-1])
 	}
 }
 

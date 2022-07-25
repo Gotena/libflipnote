@@ -1,4 +1,4 @@
-package ppmlib
+package ppm
 
 type Layer struct {
 	PenColor PenColor

@@ -26,5 +26,5 @@ func Execute() {
 }
 
 func init() {
-
+	initPpmCmds()
 }

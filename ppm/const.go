@@ -1,4 +1,4 @@
-package ppmlib
+package ppm
 
 type PaperColor byte
 
