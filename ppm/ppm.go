@@ -223,6 +223,9 @@ func Parse(data []byte) (*PPMFile, error) {
 
 	for i, frame := range file.Frames {
 		if i > 0 {
+			if file.Frames[i-1] == nil || frame == nil {
+				continue
+			}
 			frame.Overwrite(file.Frames[i-1])
 		}
 	}
@@ -255,10 +258,6 @@ func (file *PPMFile) ParseFrames(data []byte, offsets []uint32) {
 		if file.FramesParsed >= uint16(len(offsets)) {
 			break
 		}
-	}
-
-	for i := uint16(1); i < uint16(len(offsets)); i++ {
-		file.Frames[i].Overwrite(file.Frames[i-1])
 	}
 }
 
