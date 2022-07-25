@@ -14,3 +14,10 @@ func IncrementBar(progress *progressbar.ProgressBar, amount int) {
 		}
 	}()
 }
+
+func IncrementBarSync(progress *progressbar.ProgressBar, amount int) {
+	for i := 0; i < amount; i++ {
+		progress.Add(1)
+		time.Sleep(time.Millisecond * 10)
+	}
+}

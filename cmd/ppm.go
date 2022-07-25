@@ -9,6 +9,8 @@ import (
 
 	"github.com/Clinet/ffgoconv"
 	"github.com/Gotena/libflipnote/ppm"
+	"github.com/Gotena/libflipnote/utils"
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -66,9 +68,12 @@ func decodeFlipnote(cmd *cobra.Command, args []string) {
 	os.Remove(nameWAV)
 	os.Remove(output)
 
+	p := progressbar.New(100)
+
 	flip, err := ppm.ReadFile(input)
 	if err != nil {
-		panic(err)
+		fmt.Printf("error reading file: %v\n", err)
+		os.Exit(1)
 	}
 	images := make([]*image.Paletted, flip.FrameCount)
 	for i := uint16(0); i < flip.FrameCount; i++ {
@@ -77,8 +82,10 @@ func decodeFlipnote(cmd *cobra.Command, args []string) {
 
 	gifFile, err := os.Create(nameGIF)
 	if err != nil {
-		panic(err)
+		fmt.Printf("error creating file: %v\n", err)
+		os.Exit(1)
 	}
+
 	timings := make([]int, flip.FrameCount)
 
 	gif.EncodeAll(gifFile, &gif.GIF{
@@ -86,25 +93,33 @@ func decodeFlipnote(cmd *cobra.Command, args []string) {
 		Delay: timings,
 	})
 
+	utils.IncrementBar(p, 25)
+
 	err = gifFile.Close()
 	if err != nil {
-		panic(err)
+		fmt.Printf("error closing file: %v\n", err)
+		os.Exit(1)
 	}
 
 	wavFile, err := os.Create(nameWAV)
 	if err != nil {
-		panic(err)
+		fmt.Printf("error creating file: %v\n", err)
+		os.Exit(1)
 	}
 
 	err = flip.Audio.Export(wavFile, flip, 32768)
 	if err != nil {
-		panic(err)
+		fmt.Printf("error exporting audio: %v\n", err)
+		os.Exit(1)
 	}
 
 	err = wavFile.Close()
 	if err != nil {
-		panic(err)
+		fmt.Printf("error closing file: %v\n", err)
+		os.Exit(1)
 	}
+
+	utils.IncrementBar(p, 25)
 
 	ffmpeg, err := ffgoconv.NewFFmpeg(name, []string{"-hide_banner", "-stats",
 		"-r", fmt.Sprintf("%.1f", flip.Framerate),
@@ -118,12 +133,16 @@ func decodeFlipnote(cmd *cobra.Command, args []string) {
 		"-threads", "24",
 	})
 	if err != nil {
-		panic(err)
+		fmt.Printf("error creating ffmpeg: %v\n", err)
+		os.Exit(1)
 	}
 
 	if err := ffmpeg.Run(); err != nil {
-		panic(err)
+		fmt.Printf("error running ffmpeg: %v\n", err)
+		os.Exit(1)
 	}
+
+	utils.IncrementBarSync(p, 50)
 
 	os.Remove(nameGIF)
 	os.Remove(nameWAV)

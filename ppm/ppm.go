@@ -57,6 +57,15 @@ type PPMFile struct {
 }
 
 func ReadFile(path string) (*PPMFile, error) {
+	exists, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists == nil {
+		return nil, errors.New("file does not exist")
+	}
+
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -199,7 +208,7 @@ func Parse(data []byte) (*PPMFile, error) {
 	buffer.SeekByte(0x10, true)
 
 	if buffer.ByteOffset() < buffer.ByteCapacity() {
-		return nil, errors.New(fmt.Sprintf("unexpected data (%d) after signature", buffer.ByteCapacity()-buffer.ByteOffset()))
+		return nil, fmt.Errorf("unexpected data (%d) after signature", buffer.ByteCapacity()-buffer.ByteOffset())
 	}
 
 	//Block until all frames have been processed
